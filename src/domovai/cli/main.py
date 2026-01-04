@@ -1,11 +1,15 @@
 from __future__ import annotations
 
-import argparse
-from typing import Sequence
-
 from importlib.metadata import PackageNotFoundError, version
+from pathlib import Path
+
+import typer
 
 from domovai import __version__
+from domovai.core.chunker import chunk_source
+from domovai.core.loader import load_java_sources
+
+app = typer.Typer(help="Domovai — codebase indexing tool (PoC v0.1)")
 
 
 def get_version() -> str:
@@ -15,50 +19,53 @@ def get_version() -> str:
         return __version__
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        prog="domovai",
-        description="Domovai CLI (PoC v0.1)",
-    )
-    parser.add_argument(
-        "-v",
+def version_callback(value: bool) -> None:
+    if value:
+        typer.echo(f"domovai {get_version()}")
+        raise typer.Exit()
+
+
+@app.callback()
+def main(
+    version: bool = typer.Option(
+        False,
         "--version",
-        action="version",
-        version=f"domovai {get_version()}",
-    )
-    subparsers = parser.add_subparsers(dest="command", required=True)
-
-    index_parser = subparsers.add_parser("index", help="Index a Java repository")
-    index_parser.add_argument("path", help="Path to a Java repository")
-
-    search_parser = subparsers.add_parser("search", help="Semantic search over indexed code")
-    search_parser.add_argument("query", help="Search query")
-
-    explain_parser = subparsers.add_parser("explain", help="Explain a symbol or component")
-    explain_parser.add_argument("target", help="Symbol or component name")
-
-    subparsers.add_parser("stats", help="Show index statistics")
-
-    return parser
+        "-v",
+        help="Show the version and exit.",
+        callback=version_callback,
+        is_eager=True,
+    ),
+) -> None:
+    return None
 
 
-def main(argv: Sequence[str] | None = None) -> int:
-    parser = build_parser()
-    args = parser.parse_args(argv)
+@app.command()
+def index(path: Path) -> None:
+    sources = load_java_sources(path)
+    typer.echo(f"Loaded {len(sources)} Java files")
 
-    if args.command == "index":
-        print(f"Indexing: {args.path}")
-    elif args.command == "search":
-        print(f"Searching: {args.query}")
-    elif args.command == "explain":
-        print(f"Explaining: {args.target}")
-    elif args.command == "stats":
-        print("Stats: not implemented yet.")
-    else:
-        parser.error(f"Unknown command: {args.command}")
+    total_chunks = 0
+    for source in sources:
+        chunks = chunk_source(source)
+        total_chunks += len(chunks)
 
-    return 0
+    typer.echo(f"Generated {total_chunks} chunks")
+
+
+@app.command()
+def search(query: str) -> None:
+    typer.echo(f"Searching: {query}")
+
+
+@app.command()
+def explain(target: str) -> None:
+    typer.echo(f"Explaining: {target}")
+
+
+@app.command()
+def stats() -> None:
+    typer.echo("Stats: not implemented yet.")
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    app()
