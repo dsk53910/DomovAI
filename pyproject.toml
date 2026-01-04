@@ -17,4 +17,4 @@ dependencies = [
 ]
 
 [project.scripts]
-domovai = "domovai.cli.main:main"
+domovai = "domovai.cli.main:app"

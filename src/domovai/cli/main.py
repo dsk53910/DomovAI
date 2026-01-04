@@ -26,7 +26,8 @@ def version_callback(value: bool) -> None:
 
 
 @app.callback()
-def main(
+def cli(
+    ctx: typer.Context,
     version: bool = typer.Option(
         False,
         "--version",
@@ -36,7 +37,9 @@ def main(
         is_eager=True,
     ),
 ) -> None:
-    return None
+    if ctx.invoked_subcommand is None:
+        typer.echo(ctx.get_help())
+        raise typer.Exit()
 
 
 @app.command()
@@ -67,5 +70,9 @@ def stats() -> None:
     typer.echo("Stats: not implemented yet.")
 
 
-if __name__ == "__main__":
+def main() -> None:
     app()
+
+
+if __name__ == "__main__":
+    main()
