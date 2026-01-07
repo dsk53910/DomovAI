@@ -13,3 +13,4 @@ training/
 docs/
 
 .DS_Store
+.continue/
